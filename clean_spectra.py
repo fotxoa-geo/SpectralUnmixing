@@ -18,12 +18,35 @@ results = []
 
 
 def load_wavelengths(wavelength_file: str):
-    wl = np.loadtxt(wavelength_file, usecols=1) * 10 ** 3
-    fwhm = np.loadtxt(wavelength_file, usecols=2) * 10 ** 3
+    wl = np.loadtxt(wavelength_file, usecols=1)
+    fwhm = np.loadtxt(wavelength_file, usecols=2)
     if np.all(wl < 100):
         wl *= 1000
         fwhm *= 1000
     return wl, fwhm
+
+
+def create_directory(directory: str):
+    if os.path.isdir(directory):
+        pass
+    else:
+        os.mkdir(directory)
+
+
+def get_alldata_outpath(output_directory:str, dataset_name:str, geo_filter: bool):
+    if not geo_filter:
+        abs_path = os.path.join(output_directory, 'all_data', "all_data_" + dataset_name + ".csv")
+    else:
+        abs_path = os.path.join(output_directory, 'geofilter', "geofilter_" + dataset_name + ".csv")
+    return abs_path
+
+
+def get_convolved_outpath(output_directory:str, geo_filter: bool):
+    if not geo_filter:
+        abs_path = os.path.join(output_directory, 'convolved', "all_data.csv")
+    else:
+        abs_path = os.path.join(output_directory, 'convolved', "geofilter.csv")
+    return abs_path
 
 
 def download_data(base_directory: str, configs: str):
@@ -77,6 +100,7 @@ def download_data(base_directory: str, configs: str):
 
     print("data ready for processing!")
 
+
 def plot_individual_em(wvl, bn, row):
     index = str(row[0])
     spectra = np.asarray(row[1])
@@ -91,7 +115,7 @@ def plot_individual_em(wvl, bn, row):
 def parallel_convole(em_spectra, em_wvls, wvls, fwhm, classifications):
     refl_convolve = isc.resample_spectrum(x=em_spectra, wl=em_wvls, wl2=wvls, fwhm2=fwhm)
     result = list(classifications) + list(refl_convolve)
-    return (result)
+    return result
 
 
 def get_convolved_spectrum(result):
@@ -114,23 +138,12 @@ class clean:
         self.fig_directory = os.path.join(base_directory, "figures")
 
         # create directory for outputs
-        if os.path.isdir(self.output_directory):
-            pass
-        else:
-            os.mkdir(self.output_directory)
-
-        # check for figure directory
-        if os.path.isdir(self.fig_directory):
-            pass
-        else:
-            os.mkdir(self.fig_directory)
+        create_directory(self.output_directory) # output directory
+        create_directory(self.fig_directory) # figure directory
 
     def all_data(self):
         # check if directory for all data exists:
-        if os.path.isdir(os.path.join(self.output_directory, "all_data")):
-            pass
-        else:
-            os.mkdir(os.path.join(self.output_directory, "all_data"))
+        create_directory(os.path.join(self.output_directory, "all_data"))
 
         # loop for each dataset
         for i in self.datasets:
@@ -194,7 +207,7 @@ class clean:
                                     pass
                 # Create master dataframe
                 df_master = pd.DataFrame(data_master, columns=col_names)
-                df_master.to_csv(os.path.join(self.output_directory, "all_data", "all_data_" + i + ".csv"), index=False)
+                df_master.to_csv(get_alldata_outpath(self.output_directory, i, False), index=False)
 
             elif ds_name == "MEYER_OKIN":
                 spectral_table = os.path.join(self.base_directory, 'raw_data', i, self.spectra_files[i])
@@ -262,8 +275,7 @@ class clean:
                 bad_df = df_master.index.isin(bad_indices)
                 df_master = df_master[~bad_df]
 
-                df_master.to_csv((os.path.join(self.output_directory, "all_data", "all_data_" + i + ".csv")),
-                                 index=False)
+                df_master.to_csv(get_alldata_outpath(self.output_directory, i, False), index=False)
 
             elif ds_name == 'PILOT-2':
                 spectral_table = os.path.join(self.base_directory, 'raw_data', i, self.spectra_files[i])
@@ -324,7 +336,7 @@ class clean:
             if ds_name == 'MEYER_OKIN' or ds_name == 'ASTER':
                 pass
             else:
-                df.to_csv((os.path.join(self.output_directory, "all_data", "all_data_" + i + ".csv")), index=False)
+                df.to_csv(get_alldata_outpath(self.output_directory, i, False), index=False)
 
     def geo_data(self):
         print("applying geo-filter...", self.emit_mask)
@@ -348,8 +360,7 @@ class clean:
                     df = pd.DataFrame(within_points)
                     df.drop(columns=df.columns[-14:], axis=1, inplace=True)
 
-            df.to_csv(os.path.join(self.output_directory, 'geofilter', 'geofilter_' + ds_name + '.csv'),
-                      index=False)
+            df.to_csv(get_alldata_outpath(self.output_directory, ds_name, True), index=False)
         print("\t success!")
 
     def convolve(self, wavelength_file: str, geo_filter: bool, level: str):
@@ -392,13 +403,7 @@ class clean:
         df_merge = pd.DataFrame(results, columns=output_cols)
         df_merge = df_merge.drop_duplicates()
         df_merge = df_merge.dropna()
-
-        if geo_filter:
-            df_merge.to_csv(os.path.join(self.output_directory, "convolved", "all_data.csv"),
-                            index=False)
-        else:
-            df_merge.to_csv(os.path.join(self.output_directory, "convolved", "geofilter.csv"),
-                            index=False)
+        df_merge.to_csv(get_convolved_outpath(self.output_directory, True), index=False)
 
         unique_counts = df_merge[level].value_counts()
         print(unique_counts)
