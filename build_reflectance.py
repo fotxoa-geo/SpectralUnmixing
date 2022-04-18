@@ -65,7 +65,7 @@ def save_envi(output_file, meta, grid):
     del mm
 
 
-class endmembers:
+class spectral_files:
     def __init__(self, base_directory: str, configs: str, instrument: str):
         self.base_directory = base_directory
         self.output_directory = os.path.join(self.base_directory, "output")
@@ -78,7 +78,7 @@ class endmembers:
         # define seed
         np.random.seed(13)
 
-    def percentage_base(self):
+    def reflectance_percentage_base(self):
         """ Create a analysis (endmember) and simulation library..."""
         print('Splitting library...')
         table = os.path.join(self.output_directory, "convolved", 'all_data_' + self.instrument + '.csv')

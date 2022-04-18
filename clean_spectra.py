@@ -406,6 +406,5 @@ class clean:
         df_merge.to_csv(get_convolved_outpath(self.output_directory, True), index=False)
 
         unique_counts = df_merge[level].value_counts()
-        print(unique_counts)
         print('Time in parallel:', time.time() - ts)
         print('\t -Success!')
