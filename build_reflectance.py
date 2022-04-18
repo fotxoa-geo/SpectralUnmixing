@@ -9,15 +9,7 @@ from functools import partial
 from spectral.io import envi
 import time
 from tqdm import tqdm
-
-
-def load_wavelengths(wavelength_file: str):
-    wl = np.loadtxt(wavelength_file, usecols=1)
-    fwhm = np.loadtxt(wavelength_file, usecols=2)
-    if np.all(wl < 100):
-        wl *= 1000
-        fwhm *= 1000
-    return wl, fwhm
+import clean_spectra
 
 
 def reflectance_row(data):
@@ -140,7 +132,7 @@ class spectral_files:
         bootstrap_spectra = [all_combinations[i] for i in bootsrap_index]
 
         # Import wavelengths and genereate grids
-        wvls, fwhm = load_wavelengths(self.wavelength_file)
+        wvls, fwhm = clean_spectra.load_wavelengths(self.wavelength_file)
 
         fraction_grid = np.zeros((len(bootsrap_index), cols, len(class_names)))
         spectra_grid = np.zeros((len(bootsrap_index), cols, len(wvls)))

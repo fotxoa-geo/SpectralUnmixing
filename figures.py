@@ -6,6 +6,7 @@ from sys import platform
 import os
 from p_tqdm import p_map
 from functools import partial
+import clean_spectra
 
 if not "win" in platform:
     plt.switch_backend('Agg')
@@ -43,22 +44,6 @@ def plot_individual_em(wvl, em_name, bn, row):
     plt.close()
 
 
-def load_wavelengths(wavelength_file: str):
-    wl = np.loadtxt(wavelength_file, usecols=1)
-    fwhm = np.loadtxt(wavelength_file, usecols=2)
-    if np.all(wl < 100):
-        wl *= 1000
-        fwhm *= 1000
-    return wl, fwhm
-
-
-def create_directory(directory: str):
-    if os.path.isdir(directory):
-        pass
-    else:
-        os.mkdir(directory)
-
-
 class figures:
     def __init__(self, base_directory: str, wavelength_file: str):
         self.base_directory = base_directory
@@ -67,7 +52,7 @@ class figures:
         self.wavelength_file = wavelength_file
 
         # check for figure directory
-        create_directory(self.fig_directory)
+        clean_spectra.create_directory(self.fig_directory)
 
         # data paths - libraries
         self.em_lib = os.path.join(self.output_directory, 'endmember_library.csv')
@@ -79,7 +64,7 @@ class figures:
         df_sim = pd.read_csv(self.sim_lib)
 
         dfs = [df_em, df_sim]
-        wvls, fwhm = load_wavelengths(self.wavelength_file)
+        wvls, fwhm = clean_spectra.load_wavelengths(self.wavelength_file)
         good_bands = get_good_bands_mask(wvls, bad_wv_regions)
         wvls[~good_bands] = np.nan
 
@@ -127,7 +112,7 @@ class figures:
         df_sim = pd.read_csv(self.sim_lib)
 
         dfs = [df_em, df_sim]
-        wvls, fwhm = load_wavelengths(self.wavelength_file)
+        wvls, fwhm = clean_spectra.load_wavelengths(self.wavelength_file)
         good_bands = get_good_bands_mask(wvls, bad_wv_regions)
         wvls[~good_bands] = np.nan
 
@@ -140,13 +125,13 @@ class figures:
                 out_name = 'simulation'
 
             # check for directory
-            create_directory(os.path.join(self.fig_directory, out_name))
+            clean_spectra.create_directory(os.path.join(self.fig_directory, out_name))
 
             # loop through spectra
             for _em, em in enumerate(ems):
                 df_select = df.loc[df['level_1'] == em].copy()
                 # check for directory
-                create_directory(os.path.join(self.fig_directory, out_name, em))
+                clean_spectra.create_directory(os.path.join(self.fig_directory, out_name, em))
 
                 base_name = os.path.join(self.fig_directory, out_name, em)
 
