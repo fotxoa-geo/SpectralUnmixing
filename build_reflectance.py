@@ -11,6 +11,15 @@ import time
 from tqdm import tqdm
 
 
+def load_wavelengths(wavelength_file: str):
+    wl = np.loadtxt(wavelength_file, usecols=1)
+    fwhm = np.loadtxt(wavelength_file, usecols=2)
+    if np.all(wl < 100):
+        wl *= 1000
+        fwhm *= 1000
+    return wl, fwhm
+
+
 def reflectance_row(data):
 
     row_spectra = []
@@ -66,22 +75,27 @@ def save_envi(output_file, meta, grid):
 
 
 class spectral_files:
-    def __init__(self, base_directory: str, configs: str, instrument: str):
+    def __init__(self, base_directory: str, configs: str, wavelength_file: str):
         self.base_directory = base_directory
         self.output_directory = os.path.join(self.base_directory, "output")
 
         # Load configs
         f = open(configs)
         self.data = json.load(f)
-        self.instrument = instrument
+        self.wavelength_file = wavelength_file
 
         # define seed
         np.random.seed(13)
 
-    def reflectance_percentage_base(self):
+    def reflectance_percentage_base(self, geo_filter: bool):
         """ Create a analysis (endmember) and simulation library..."""
         print('Splitting library...')
-        table = os.path.join(self.output_directory, "convolved", 'all_data_' + self.instrument + '.csv')
+
+        if geo_filter:
+            table = os.path.join(self.output_directory, "convolved", 'geofilter.csv')
+        else:
+            table = os.path.join(self.output_directory, "convolved", 'all_data.csv')
+
         df = pd.read_csv(table)
         ems = df['level_1'].unique()
 
@@ -126,15 +140,7 @@ class spectral_files:
         bootstrap_spectra = [all_combinations[i] for i in bootsrap_index]
 
         # Import wavelengths and genereate grids
-        if self.instrument == 'aviris':
-            wvls = np.loadtxt(os.path.join('wavelengths', self.instrument + "_wavelengths.txt"), usecols=1) * 10 ** 3
-
-        # need FWHM for neon; ask Phil if not calculate
-        elif self.instrument == 'neon':
-            wvls = np.loadtxt(os.path.join('wavelengths', self.instrument + "_wavelengths.txt"), usecols=0)
-
-        elif self.instrument == 'emit':
-            wvls = np.loadtxt(os.path.join('wavelengths', self.instrument + "_wavelengths.txt"), usecols=1) * 10 ** 3
+        wvls, fwhm = load_wavelengths(self.wavelength_file)
 
         fraction_grid = np.zeros((len(bootsrap_index), cols, len(class_names)))
         spectra_grid = np.zeros((len(bootsrap_index), cols, len(wvls)))
