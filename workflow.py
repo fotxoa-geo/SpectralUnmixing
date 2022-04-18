@@ -34,7 +34,7 @@ def main():
         bl.reflectance_bootstrap(cols=args.cols, level=args.classification_level, combinations=args.combinations)
 
     if args.mode in ['figs', 'all']: # plot em and individual spectra
-        figs = figures(base_directory=args.base_directory, instrument=args.wavelength_file)
+        figs = figures(base_directory=args.base_directory, wavelength_file=args.wavelength_file)
         figs.endmember_library()
         figs.individual_em()
 
